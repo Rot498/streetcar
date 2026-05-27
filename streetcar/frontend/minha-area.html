@@ -66,7 +66,7 @@
       <div class="tabela">
         <h2>Minhas Reservas</h2>
         <table>
-          <thead><tr><th>Veículo</th><th>Início</th><th>Fim</th><th>Status</th><th>Ação</th></tr></thead>
+          <thead><tr><th>Veículo</th><th>Início Locação</th><th>Devolução</th><th>Status</th><th>Ação</th></tr></thead>
           <tbody id="tabelaMinhasReservas"></tbody>
         </table>
       </div>
@@ -76,7 +76,7 @@
       <div class="tabela">
         <h2>Minhas Locações</h2>
         <table>
-          <thead><tr><th>Veículo</th><th>Início</th><th>Fim</th><th>Total</th><th>Status</th></tr></thead>
+          <thead><tr><th>Veículo</th><th>Início Locação</th><th>Devolução</th><th>Total</th><th>Status</th></tr></thead>
           <tbody id="tabelaMinhasLocacoes"></tbody>
         </table>
       </div>
@@ -87,9 +87,9 @@
         <h2>Fazer Reserva</h2>
         <p id="modal-veiculo-info" style="color:#F1560A; margin-bottom:10px;"></p>
         <input type="hidden" id="modal-veiculo-id">
-        <label style="font-size:12px; color:#aaa;">Data de Início</label>
+        <label style="font-size:12px; color:#aaa;">Data Locação</label>
         <input type="date" id="res-inicio">
-        <label style="font-size:12px; color:#aaa; margin-top:8px; display:block;">Data de Fim</label>
+        <label style="font-size:12px; color:#aaa; margin-top:8px; display:block;">Devolução</label>
         <input type="date" id="res-fim">
         <button onclick="confirmarReserva()" style="margin-top:14px;">Confirmar Reserva</button>
         <button onclick="fecharModal()" style="margin-top:8px; background:#555;">Cancelar</button>

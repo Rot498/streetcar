@@ -185,8 +185,7 @@ function limparSessao() {
   sessionStorage.removeItem("sessao");
 }
 
-//Verifica se há sessão ativa e se o perfil bate com o requerido.
-// Se perfilRequerido for null, qualquer perfil logado é aceito.
+//trecho que difero login de cliente e admin, redirecionando para a página correta.
 
 function verificarLogin(perfilRequerido = null) {
   const sessao = getSessao();
