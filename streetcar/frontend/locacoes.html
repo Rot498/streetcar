@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Locações - StreetCar</title>
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/locacoes.css">
+</head>
+<body>
+<div class="container">
+  <aside class="sidebar">
+    <h2>StreetCar</h2>
+    <ul>
+      <li onclick="ir('dashboard.html')">📊 Dashboard</li>
+      <li onclick="ir('veiculos.html')">🚗 Veículos</li>
+      <li onclick="ir('clientes.html')">👤 Clientes</li>
+      <li class="active">📄 Locações</li>
+      <li onclick="ir('reservas.html')">📅 Reservas</li>
+      <li onclick="logout()">🚪 Sair</li>
+    </ul>
+    <div class="badge-perfil">👑 ADMINISTRADOR</div>
+  </aside>
+
+  <main class="main">
+    <div class="topo">
+      <h1>Locações</h1>
+      <div id="userName" class="user"></div>
+    </div>
+
+    <div class="tabela" id="secao-nova">
+      <h2>Nova Locação Direta</h2>
+      <div class="form-locacao">
+        <div>
+          <label style="font-size:12px;color:#aaa;">Cliente</label>
+          <select id="clienteId" style="background:#2c2d38;color:white;padding:10px;border-radius:8px;border:none;min-width:200px;display:block;margin-top:4px;"></select>
+        </div>
+        <div>
+          <label style="font-size:12px;color:#aaa;">Veículo</label>
+          <select id="veiculoId" style="background:#2c2d38;color:white;padding:10px;border-radius:8px;border:none;min-width:200px;display:block;margin-top:4px;"></select>
+        </div>
+        <div class="campo-data">
+          <label>Data Início</label>
+          <input type="date" id="dataInicio">
+        </div>
+        <div class="campo-data">
+          <label>Data Fim Previsto</label>
+          <input type="date" id="dataFim">
+        </div>
+        <button onclick="criarLocacao()" style="width:auto;padding:10px 20px;align-self:flex-end;">+ Criar Locação</button>
+      </div>
+    </div>
+
+    <!-- Lista -->
+    <div class="tabela">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <h2 style="margin:0;">Lista de Locações <span id="contador" style="color:#aaa;font-size:14px;font-weight:normal;"></span></h2>
+      </div>
+
+      <div class="filtros">
+        <span style="color:#aaa;font-size:13px;">Filtrar:</span>
+        <button id="btn-todos"   class="ativo" onclick="filtrar('todos')">Todas</button>
+        <button id="btn-Ativa"          onclick="filtrar('Ativa')">🟢 Ativas</button>
+        <button id="btn-Encerrada"      onclick="filtrar('Encerrada')">⚫ Encerradas</button>
+        <button id="btn-Cancelada"      onclick="filtrar('Cancelada')">🔴 Canceladas</button>
+      </div>
+
+      <div id="listaLocacoes"></div>
+    </div>
+  </main>
+</div>
+
+<div id="modal-devolucao" class="modal-overlay">
+  <div class="modal-vistoria">
+    <h2>🔍 Vistoria de Devolução</h2>
+    <p class="subtitulo" id="modal-subtitulo"></p>
+
+    <input type="hidden" id="dev-id">
+    <input type="hidden" id="dev-diaria">
+    <input type="hidden" id="dev-data-fim">
+    <input type="hidden" id="dev-valor-orig">
+
+    <div class="campo-v">
+      <label>📅 Data real de devolução</label>
+      <input type="date" id="dev-data-real" onchange="calcularAtraso()">
+    </div>
+
+    <div class="alerta-multa" id="alerta-atraso">
+      ⚠️ <strong>Devolução em atraso!</strong>
+      <div id="detalhe-atraso" style="margin-top:6px;"></div>
+    </div>
+    <div class="alerta-ok" id="alerta-ok">
+      ✅ <strong>Devolução no prazo.</strong> Sem multa.
+    </div>
+
+    <div class="campo-v">
+      <label>⛽ Nível de combustível na devolução</label>
+      <select id="dev-combustivel" onchange="calcularResumo()">
+        <option value="">Selecione...</option>
+        <option value="Cheio">Cheio — sem taxa</option>
+        <option value="3/4">3/4 — taxa 5%</option>
+        <option value="1/2">1/2 — taxa 10%</option>
+        <option value="1/4">1/4 — taxa 20%</option>
+        <option value="Vazio">Vazio — taxa 30%</option>
+      </select>
+    </div>
+
+    <div class="campo-v">
+      <label>🔧 Danos encontrados (deixe em branco se nenhum)</label>
+      <textarea id="dev-danos" placeholder="Ex: Arranhão no para-choque dianteiro..." oninput="calcularResumo()"></textarea>
+    </div>
+
+    <hr class="sep">
+
+    <div class="linha-res"><span>Valor original</span><span id="res-orig">R$ 0,00</span></div>
+    <div class="linha-res" id="linha-multa" style="color:#F1560A;display:none;">
+      <span id="res-label-multa">Multa (0 dias)</span>
+      <span id="res-multa">+ R$ 0,00</span>
+    </div>
+    <div class="linha-res" id="linha-avaria" style="color:#ff6b35;display:none;">
+      <span>🔧 Taxa de avaria (30%)</span>
+      <span id="res-avaria">+ R$ 0,00</span>
+    </div>
+    <div class="linha-res" id="linha-combustivel" style="color:#f59e0b;display:none;">
+      <span id="res-label-comb">⛽ Taxa combustível (0%)</span>
+      <span id="res-combustivel">+ R$ 0,00</span>
+    </div>
+    <div id="alerta-manutencao" style="display:none;background:#2a1a0a;border:1px solid #ff6b35;border-radius:8px;padding:10px 14px;margin:10px 0;font-size:13px;color:#ff6b35;">
+      🔧 <strong>Veículo irá para Manutenção</strong> após a devolução por conta dos danos registrados.
+    </div>
+    <div class="linha-res total"><span>Total a cobrar</span><span id="res-total">R$ 0,00</span></div>
+
+    <div class="btns-modal">
+      <button onclick="confirmarDevolucao()" style="background:#00c853;">✅ Confirmar Devolução</button>
+      <button onclick="fecharModal()" style="background:#555;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+  const sessao = verificarLogin("ADMIN");
+  let todasLocacoes = [];
+  let filtroAtual = "todos";
+
+  // Bloqueia datas anteriores a hoje nos campos de data
+  const hoje = new Date().toISOString().split("T")[0];
+  document.getElementById("dataInicio").min = hoje;
+  document.getElementById("dataFim").min = hoje;
+
+  if (sessao) {
+    document.getElementById("userName").innerText = "👤 " + sessao.nome;
+    carregarSelects();
+    carregar();
+  }
+
+  async function carregarSelects() {
+    const [usuarios, veiculos] = await Promise.all([apiGetUsuarios(), apiGetVeiculosDisponiveis()]);
+    const clientes = usuarios.filter(u => u.perfil === "CLIENTE");
+
+    document.getElementById("clienteId").innerHTML =
+      clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join("") || "<option>Nenhum cliente</option>";
+
+    document.getElementById("veiculoId").innerHTML =
+      veiculos.map(v => `<option value="${v.id}" data-diaria="${v.diaria}">${v.modelo} — ${v.placa} · R$ ${v.diaria}/dia</option>`).join("") || "<option>Nenhum veículo disponível</option>";
+  }
+
+  async function criarLocacao() {
+    const clienteId = document.getElementById("clienteId").value;
+    const veiculoId = document.getElementById("veiculoId").value;
+    const inicio    = document.getElementById("dataInicio").value;
+    const fim       = document.getElementById("dataFim").value;
+
+    if (!clienteId || !veiculoId || !inicio || !fim) { alert("Preencha todos os campos!"); return; }
+    if (fim <= inicio) { alert("A data de fim deve ser após o início!"); return; }
+
+    const opt    = document.querySelector(`#veiculoId option[value="${veiculoId}"]`);
+    const diaria = parseFloat(opt.dataset.diaria);
+    const dias   = Math.ceil((new Date(fim) - new Date(inicio)) / 86400000);
+    const total  = dias * diaria;
+
+    try {
+      await apiCriarLocacao({
+        cliente: { id: parseInt(clienteId) },
+        veiculo: { id: parseInt(veiculoId) },
+        dataInicio: inicio, dataFim: fim,
+        status: "Ativa", valorTotal: total
+      });
+      alert(`Locação criada! Total previsto: R$ ${total.toFixed(2)} (${dias} dia${dias > 1 ? "s" : ""})`);
+      carregarSelects();
+      carregar();
+    } catch(e) { alert("Erro ao criar locação: " + e.message); }
+  }
+
+  async function carregar() {
+    todasLocacoes = await apiGetLocacoes();
+    renderizar();
+  }
+
+  function filtrar(status) {
+    filtroAtual = status;
+    document.querySelectorAll(".filtros button").forEach(b => b.classList.remove("ativo"));
+    const btn = status === "todos" ? document.getElementById("btn-todos") : document.getElementById("btn-" + status);
+    if (btn) btn.classList.add("ativo");
+    renderizar();
+  }
+
+  function renderizar() {
+    const lista = filtroAtual === "todos"
+      ? todasLocacoes
+      : todasLocacoes.filter(l => l.status === filtroAtual);
+
+    document.getElementById("contador").innerText = `(${lista.length})`;
+    const container = document.getElementById("listaLocacoes");
+
+    if (!lista.length) {
+      container.innerHTML = `<p style="color:#aaa;text-align:center;padding:20px;">Nenhuma locação encontrada.</p>`;
+      return;
+    }
+
+    container.innerHTML = lista.map(l => cardLocacao(l)).join("");
+  }
+
+  function cardLocacao(l) {
+    const ativa     = l.status === "Ativa";
+    const encerrada = l.status === "Encerrada";
+
+    const msInicio = new Date(l.dataInicio).getTime();
+    const msFim    = new Date(l.dataFim).getTime();
+    const diasContrat = Math.ceil((msFim - msInicio) / 86400000) || 1;
+
+    let diasReais = "-";
+    if (encerrada && l.dataEncerramento) {
+      diasReais = Math.ceil((new Date(l.dataEncerramento) - new Date(l.dataInicio)) / 86400000) || 1;
+      diasReais += " dia" + (diasReais > 1 ? "s" : "");
+    }
+
+    const badgeMap = { Ativa: "verde", Encerrada: "cinza", Cancelada: "cinza" };
+    const badge = `<span class="badge ${badgeMap[l.status] || "cinza"}">${l.status}</span>`;
+
+    const atrasoBadge = (encerrada && l.diasAtraso > 0)
+      ? `<span class="badge amarelo">⚠️ ${l.diasAtraso}d atraso</span>` : "";
+
+    const cardClass = l.status === "Encerrada" ? "encerrada" : l.status === "Cancelada" ? "cancelada" : "";
+
+    let vistoriaHtml = "";
+    if (encerrada) {
+      const temDanos = l.danos && l.danos !== "Nenhum";
+      const taxaAvaria = l.taxaAvaria || 0;
+      const taxaComb   = l.taxaCombustivel || 0;
+      const percCombLabel = { "Cheio": "0%", "3/4": "5%", "1/2": "10%", "1/4": "20%", "Vazio": "30%" };
+      vistoriaHtml = `
+        <div class="vistoria-box">
+          <h4>🔍 Resultado da Vistoria</h4>
+          <div class="vistoria-grid">
+            <div class="det-item">
+              <div class="det-label">Data devolução</div>
+              <div class="det-valor">${l.dataEncerramento || "-"}</div>
+            </div>
+            <div class="det-item">
+              <div class="det-label">Dias de uso real</div>
+              <div class="det-valor">${diasReais}</div>
+            </div>
+            <div class="det-item">
+              <div class="det-label">⛽ Combustível</div>
+              <div class="det-valor ${l.nivelCombustivel === 'Vazio' || l.nivelCombustivel === '1/4' ? 'vermelho' : 'verde'}">${l.nivelCombustivel || "-"}</div>
+            </div>
+            <div class="det-item">
+              <div class="det-label">Multa por atraso</div>
+              <div class="det-valor ${l.multaAtraso > 0 ? 'vermelho' : 'verde'}">
+                ${l.multaAtraso > 0 ? `R$ ${l.multaAtraso.toFixed(2)} (${l.diasAtraso} dia${l.diasAtraso > 1 ? "s" : ""})` : "Sem multa"}
+              </div>
+            </div>
+            <div class="det-item">
+              <div class="det-label">🔧 Taxa de avaria (30%)</div>
+              <div class="det-valor ${taxaAvaria > 0 ? 'vermelho' : 'verde'}">
+                ${taxaAvaria > 0 ? `R$ ${taxaAvaria.toFixed(2)}` : "Sem taxa"}
+              </div>
+            </div>
+            <div class="det-item">
+              <div class="det-label">⛽ Taxa combustível (${percCombLabel[l.nivelCombustivel] || "0%"})</div>
+              <div class="det-valor ${taxaComb > 0 ? 'amarelo' : 'verde'}">
+                ${taxaComb > 0 ? `R$ ${taxaComb.toFixed(2)}` : "Sem taxa"}
+              </div>
+            </div>
+            <div class="det-item" style="grid-column: span 2;">
+              <div class="det-label">🔧 Danos registrados</div>
+              <div class="det-valor ${temDanos ? 'vermelho' : 'verde'}">${l.danos || "Nenhum"}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    let acoesHtml = "";
+    if (ativa) {
+        
+          const modeloEsc = (l.veiculo?.modelo || "").replace(/'/g, "\\'");
+          acoesHtml = `
+            <button onclick="event.stopPropagation(); abrirModalDevolucao(${l.id}, '${modeloEsc}', '${l.dataFim}', ${l.veiculo?.diaria || 0}, ${l.valorTotal || 0})"
+              style="background:#00c853;">
+              🔍 Registrar Devolução
+            </button>
+          `;
+    }
+    acoesHtml += `
+      <button onclick="event.stopPropagation(); excluir(${l.id})" style="background:#ff4d4d;">🗑️ Excluir</button>
+    `;
+
+    return `
+      <div class="loc-card ${cardClass}" id="card-${l.id}">
+
+        <!-- Cabeçalho clicável -->
+        <div class="loc-header" onclick="toggleCard(${l.id})">
+          <div class="loc-header-left">
+            <div>
+              <div class="loc-nome">👤 ${l.cliente?.nome || "-"}</div>
+              <div class="loc-veiculo">🚗 ${l.veiculo?.modelo || "-"} · ${l.veiculo?.placa || ""}</div>
+            </div>
+            <div style="font-size:13px;color:#aaa;">
+              📅 ${l.dataInicio} → ${l.dataFim}
+            </div>
+          </div>
+          <div class="loc-header-right">
+            ${badge}
+            ${atrasoBadge}
+            <span style="font-weight:bold;color:#F1560A;">R$ ${l.valorTotal?.toFixed(2) || "0,00"}</span>
+            <span class="chevron">▼</span>
+          </div>
+        </div>
+
+        <!-- Corpo expandível -->
+        <div class="loc-body">
+
+          <!-- Grid de dados completos -->
+          <div class="det-grid">
+
+            <!-- Cliente -->
+            <div class="det-item">
+              <div class="det-label">📧 E-mail</div>
+              <div class="det-valor">${l.cliente?.email || "-"}</div>
+            </div>
+            <div class="det-item">
+              <div class="det-label">📞 Telefone</div>
+              <div class="det-valor">${l.cliente?.telefone || "-"}</div>
+            </div>
+
+            <!-- Veículo -->
+            <div class="det-item">
+              <div class="det-label">🚗 Modelo</div>
+              <div class="det-valor">${l.veiculo?.modelo || "-"}</div>
+            </div>
+            <div class="det-item">
+              <div class="det-label">🔖 Placa</div>
+              <div class="det-valor">${l.veiculo?.placa || "-"}</div>
+            </div>
+            <div class="det-item">
+              <div class="det-label">📅 Ano</div>
+              <div class="det-valor">${l.veiculo?.ano || "-"}</div>
+            </div>
+            <div class="det-item">
+              <div class="det-label">💵 Diária</div>
+              <div class="det-valor">R$ ${l.veiculo?.diaria?.toFixed(2) || "-"}</div>
+            </div>
+
+            <!-- Datas e valores -->
+            <div class="det-item">
+              <div class="det-label">📆 Início</div>
+              <div class="det-valor">${l.dataInicio}</div>
+            </div>
+            <div class="det-item">
+              <div class="det-label">📆 Fim previsto</div>
+              <div class="det-valor">${l.dataFim}</div>
+            </div>
+            <div class="det-item">
+              <div class="det-label">🗓️ Dias contratados</div>
+              <div class="det-valor">${diasContrat} dia${diasContrat > 1 ? "s" : ""}</div>
+            </div>
+            <div class="det-item">
+              <div class="det-label">💰 Valor total</div>
+              <div class="det-valor destaque">R$ ${l.valorTotal?.toFixed(2) || "0,00"}</div>
+            </div>
+            <div class="det-item">
+              <div class="det-label">📋 Status</div>
+              <div class="det-valor">${l.status}</div>
+            </div>
+
+          </div>
+
+          <!-- Vistoria (só encerradas) -->
+          ${vistoriaHtml}
+
+          <!-- Ações -->
+          <div class="loc-acoes">
+            ${acoesHtml}
+          </div>
+
+        </div>
+      </div>
+    `;
+  }
+
+  function toggleCard(id) {
+    document.getElementById("card-" + id).classList.toggle("aberto");
+  }
+
+  async function excluir(id) {
+    if (!confirm("Excluir esta locação?")) return;
+    await apiDeletarLocacao(id);
+    carregarSelects();
+    carregar();
+  }
+
+  function abrirModalDevolucao(id, modelo, dataFim, diaria, valorOrig) {
+    document.getElementById("dev-id").value       = id;
+    document.getElementById("dev-diaria").value   = diaria;
+    document.getElementById("dev-data-fim").value = dataFim;
+    document.getElementById("dev-valor-orig").value = valorOrig;
+    document.getElementById("modal-subtitulo").innerText = `Veículo: ${modelo}  |  Prazo: ${dataFim}`;
+
+    const hoje = new Date().toISOString().split("T")[0];
+    document.getElementById("dev-data-real").value = hoje;
+    document.getElementById("dev-data-real").min = hoje;
+    document.getElementById("dev-combustivel").value = "";
+    document.getElementById("dev-danos").value = "";
+
+    document.getElementById("res-orig").innerText  = `R$ ${parseFloat(valorOrig).toFixed(2)}`;
+    document.getElementById("res-total").innerText = `R$ ${parseFloat(valorOrig).toFixed(2)}`;
+    document.getElementById("linha-multa").style.display = "none";
+    document.getElementById("alerta-atraso").classList.remove("vis");
+    document.getElementById("alerta-ok").classList.remove("vis");
+
+    calcularResumo();
+    document.getElementById("modal-devolucao").classList.add("aberto");
+  }
+
+  function fecharModal() {
+    document.getElementById("modal-devolucao").classList.remove("aberto");
+  }
+
+  function calcularAtraso() { calcularResumo(); }
+
+  const TAXA_COMB = { "Cheio": 0, "3/4": 0.05, "1/2": 0.10, "1/4": 0.20, "Vazio": 0.30 };
+
+  function calcularResumo() {
+    const dataRealStr = document.getElementById("dev-data-real").value;
+    const dataFimStr  = document.getElementById("dev-data-fim").value;
+    const diaria      = parseFloat(document.getElementById("dev-diaria").value) || 0;
+    const valorOrig   = parseFloat(document.getElementById("dev-valor-orig").value) || 0;
+    const combustivel = document.getElementById("dev-combustivel").value;
+    const danos       = document.getElementById("dev-danos").value.trim();
+    if (!dataRealStr || !dataFimStr) return;
+
+    const diasAtraso = Math.max(0, Math.round(
+      (new Date(dataRealStr + "T00:00:00") - new Date(dataFimStr + "T00:00:00")) / 86400000
+    ));
+    const multa = diasAtraso * diaria;
+    const valorBase = valorOrig + multa;
+
+    if (diasAtraso > 0) {
+      document.getElementById("alerta-atraso").classList.add("vis");
+      document.getElementById("alerta-ok").classList.remove("vis");
+      document.getElementById("detalhe-atraso").innerHTML =
+        `${diasAtraso} dia(s) × R$ ${diaria.toFixed(2)} = <strong>R$ ${multa.toFixed(2)}</strong> de multa`;
+      document.getElementById("linha-multa").style.display = "flex";
+      document.getElementById("res-label-multa").innerText = `Multa (${diasAtraso} dia${diasAtraso > 1 ? "s" : ""})`;
+      document.getElementById("res-multa").innerText = `+ R$ ${multa.toFixed(2)}`;
+    } else {
+      document.getElementById("alerta-atraso").classList.remove("vis");
+      document.getElementById("alerta-ok").classList.add("vis");
+      document.getElementById("linha-multa").style.display = "none";
+    }
+
+    const temDanos   = danos.length > 0;
+    const taxaAvaria = temDanos ? valorBase * 0.30 : 0.0;
+    const linhaAvaria = document.getElementById("linha-avaria");
+    const alertaManutencao = document.getElementById("alerta-manutencao");
+    if (temDanos) {
+      linhaAvaria.style.display = "flex";
+      document.getElementById("res-avaria").innerText = `+ R$ ${taxaAvaria.toFixed(2)}`;
+      alertaManutencao.style.display = "block";
+    } else {
+      linhaAvaria.style.display = "none";
+      alertaManutencao.style.display = "none";
+    }
+
+    const percComb  = TAXA_COMB[combustivel] || 0;
+    const taxaComb  = valorBase * percComb;
+    const linhaComb = document.getElementById("linha-combustivel");
+    if (percComb > 0 && combustivel) {
+      linhaComb.style.display = "flex";
+      document.getElementById("res-label-comb").innerText = `⛽ Taxa combustível (${percComb * 100}%)`;
+      document.getElementById("res-combustivel").innerText = `+ R$ ${taxaComb.toFixed(2)}`;
+    } else {
+      linhaComb.style.display = "none";
+    }
+
+    const total = valorBase + taxaAvaria + taxaComb;
+    document.getElementById("res-total").innerText = `R$ ${total.toFixed(2)}`;
+  }
+
+  async function confirmarDevolucao() {
+    const id          = document.getElementById("dev-id").value;
+    const dataDevReal = document.getElementById("dev-data-real").value;
+    const combustivel = document.getElementById("dev-combustivel").value;
+    const danos       = document.getElementById("dev-danos").value.trim();
+    const total       = document.getElementById("res-total").innerText;
+    const temDanos    = danos.length > 0;
+
+    if (!combustivel) { alert("Informe o nível de combustível!"); return; }
+    if (!dataDevReal) { alert("Informe a data de devolução!"); return; }
+
+    const statusVeiculo = temDanos ? "Manutenção" : "Disponível";
+    const msg = `Confirmar devolução?\n\nTotal a cobrar: ${total}\n\n` +
+                `${temDanos ? "⚠️ Veículo será enviado para MANUTENÇÃO.\n" : "✅ Veículo ficará DISPONÍVEL.\n"}`;
+    if (!confirm(msg)) return;
+
+    try {
+      await apiRegistrarDevolucao(parseInt(id), { danos, nivelCombustivel: combustivel, dataDevReal });
+      fecharModal();
+      alert(`✅ Devolução registrada!\nTotal cobrado: ${total}\nVeículo: ${statusVeiculo}`);
+      carregarSelects();
+      carregar();
+    } catch(e) { alert("Erro: " + e.message); }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+
+.legenda {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+  align-items: center;
+  font-size: 13px;
+  color: #aaa;
+}
+
+.legenda span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
