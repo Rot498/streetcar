@@ -302,9 +302,6 @@
             </button>
           `;
     }
-    acoesHtml += `
-      <button onclick="event.stopPropagation(); excluir(${l.id})" style="background:#ff4d4d;">🗑️ Excluir</button>
-    `;
 
     return `
       <div class="loc-card ${cardClass}" id="card-${l.id}">
@@ -401,13 +398,6 @@
 
   function toggleCard(id) {
     document.getElementById("card-" + id).classList.toggle("aberto");
-  }
-
-  async function excluir(id) {
-    if (!confirm("Excluir esta locação?")) return;
-    await apiDeletarLocacao(id);
-    carregarSelects();
-    carregar();
   }
 
   function abrirModalDevolucao(id, modelo, dataFim, diaria, valorOrig) {
